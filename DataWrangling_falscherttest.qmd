@@ -1,0 +1,156 @@
+---
+title: "Projektarbeit"
+subtitle: "Data Wrangling"
+author: "Marc Zirnstein"
+format: 
+  html:
+    self-contained: true
+    toc: true
+    toc-depth: 3
+    code-fold: false
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+# Data Wrangling
+## Einleitung
+
+In diesem Abschnitt werden ein strukturiertes Data Wrangling sowie eine statistische Auswertung für den Microarray-Genexpressionsdatensatz `ALLMLL` durchgeführt. Ziel ist die Bereinigung der rohen Expressionsdaten, deren Umwandlung in ein analysierbares Format, die Berechnung von Gruppenmittelwerten sowie die Identifikation differenziell exprimierter Gen-Sonden (*probesets*) zwischen den Subtypen (ALL vs. MLL).
+
+---
+
+## 1. Vorbereitung und Laden der Pakete
+
+Zunächst werden die benötigten R-Pakete geladen. Für die Handhabung der Bioconductor-Microarraydaten werden `ALLMLL` und `affy` eingesetzt, für die Datenbereinigung und Transformation das `tidyverse` sowie `rstatix` für statistische Tests.
+
+```{r setup}
+library(ALLMLL)
+library(affy)
+library(tidyverse)
+library(rstatix)
+
+# Laden des Datensatzes MLL.A
+data(MLL.A)
+```
+
+---
+
+## 2. Datenextraktion und Datenintegration
+
+Im ersten Wrangling-Schritt werden die Intensitätsdaten (Expressionsmatrix) sowie die dazugehörigen Proben-Metadaten aus dem `AffyBatch`-Objekt `MLL.A` extrahiert. Um spätere Namenskonflikte beim Zusammenführen der Tabellen zu vermeiden, wird die bestehende `sample`-Spalte der Metadaten umbenannt.
+
+```{r extraction}
+# 1. Expressionsmatrix extrahieren und Probeset-Namen als Spalte anlegen
+exprs_df <- exprs(MLL.A) %>% 
+  as.data.frame() %>% 
+  rownames_to_column(var = "probeset")
+
+# 2. Metadaten extrahieren und Probenbezeichner vorbereiten
+meta_df <- pData(MLL.A) %>% 
+  rename(sample_num = sample) %>% 
+  rownames_to_column(var = "sample")
+```
+
+---
+
+## 3. Datenumformung (Wide to Long Format) und Merging
+
+Bioconductor-Matrizen liegen primär im Wide-Format vor (Gene in Zeilen, Proben in Spalten). Für Tidy-Data-Analysen wird die Matrix mittels `pivot_longer()` in das Long-Format umgewandelt und über `left_join()` mit den Metadaten verknüpft.
+
+```{r wide-to-long}
+allmll_long <- exprs_df %>%
+  pivot_longer(cols = -probeset, names_to = "sample", values_to = "intensity") %>%
+  left_join(meta_df, by = "sample")
+
+# Vorschau der Long-Tabelle
+head(allmll_long)
+```
+
+---
+
+## 4. Feature Engineering und Datentransformation
+
+Microarray-Intensitätswerte weisen eine stark rechtsschiefe Verteilung auf. Es wird eine Log2-Transformation (`log2(intensity + 1)`) durchgeführt, um die Varianzheterogenität zu reduzieren und die Normalverteilungsannahme für spätere Tests anzunähern.
+
+```{r transformation}
+allmll_transformed <- allmll_long %>%
+  mutate(log_intensity = log2(intensity + 1))
+# Vorschau der transformierten Daten im Dokument anzeigen
+head(allmll_transformed)
+```
+
+---
+
+## 5. Datenbereinigung und Qualitätskontrolle
+
+Hintergrundrauschen und nicht exprimierte Gene können die Analyse verfälschen. Daher werden Probesets herausgefiltert, deren durchschnittliche un-transformierte Intensität über alle Proben hinweg unter einem Schwellenwert von 100 liegt.
+
+```{r cleaning}
+allmll_cleaned <- allmll_transformed %>%
+  group_by(probeset) %>%
+  filter(mean(intensity) >= 100) %>%
+  ungroup()
+# Vorschau der bereinigten Daten im Dokument anzeigen
+head(allmll_cleaned)
+```
+
+---
+
+## 6. Aggregation und Rücktransformation (Long to Wide Format)
+
+Anschließend wird die biologische Gruppeneinteilung hinzugefügt (Proben 1–10 = `ALL`, Proben 11–20 = `MLL`). Für jede Gen-Sonde und Gruppe wird der Mittelwert der logarithmierten Expression berechnet. Schließlich werden die Daten mittels `pivot_wider()` in ein kompaktes Wide-Format zur Gegenüberstellung gebracht.
+
+```{r aggregation}
+allmll_summary <- allmll_cleaned %>%
+  mutate(group = if_else(as.numeric(sample_num) <= 10, "ALL", "MLL")) %>%
+  group_by(probeset, group) %>%
+  summarize(mean_log_expr = mean(log_intensity), .groups = "drop") %>%
+  pivot_wider(names_from = group, values_from = mean_log_expr)
+
+# Ergebnisübersicht
+head(allmll_summary)
+```
+
+---
+
+## 7. Statistische Analyse (Differential Expression via t-Test)
+
+Um signifikant unterschiedlich exprimierte Gen-Sonden zwischen den Gruppen `ALL` und `MLL` zu identifizieren, wird für jedes Probeset ein Welch-t-Test durchgeführt. Zur Kontrolle der kumulierten Fehlerquote bei multiplem Testen werden die p-Werte nach der Bonferroni-Methode korrigiert.
+
+```{r statistical-testing}
+# Durchführung der t-Tests für die ersten 1.000 Probesets zur performanten Berechnung
+ttest_results <- allmll_cleaned %>%
+  filter(probeset %in% head(unique(probeset), 1000)) %>% 
+  mutate(group = if_else(as.numeric(sample_num) <= 10, "ALL", "MLL")) %>%
+  group_by(probeset) %>%
+  t_test(log_intensity ~ group) %>%
+  adjust_pvalue(method = "bonferroni") %>%
+  add_significance("p.adj")
+
+# Vorschau aller t-Test-Ergebnisse anzeigen
+head(ttest_results)
+
+# Signifikante Probesets ermitteln und anzeigen
+sig_probes <- ttest_results %>% filter(p.adj < 0.05)
+head(sig_probes)
+```
+
+---
+
+## Diskussion der wichtigsten Erkenntnisse
+
+1. **Effekt der Datenumformung & Transformation:**
+   Die Umwandlung von Wide- zu Long-Formaten ist zwar speicherintensiver, ermöglicht aber die nahtlose Einbindung von Stichproben-Metadaten und vereinfacht Gruppierungs- sowie Filteroperationen im `tidyverse`-Ökosystem erheblich. Durch die Log2-Transformation wird eine symmetrischere Verteilung der Signalintensitäten erreicht.
+
+2. **Bedeutung der Qualitätskontrolle (Filtering):**
+   Durch das Ausfiltern schwach exprimierter Gen-Sonden (Intensität < 100) wird nicht nur Signalrauschen reduziert, sondern auch die Anzahl der durchzuführenden t-Tests verringert, was die statistische Teststärke nach Korrektur für multiples Testen schont.
+
+3. **Ergebnisse der differenziellen Expressionsanalyse:**
+   Der Gruppenvergleich zwischen ALL- und MLL-Proben zeigt deutliche Unterschiede in spezifischen Transkripten. Nach multipler Testkorrektur (Bonferroni) können biologisch relevante Probesets identifiziert werden, die eine signifikante differentielle Expression aufweisen.
+
+---
+
+## Allgemeine Schlussfolgerung
+
+Die Kombination von spezialisierten **Bioconductor-Paketen** (`ALLMLL`, `affy`) mit der konsistenten Syntax des **`tidyverse`** (`dplyr`, `tidyr`) ermöglicht eine transparente, reproduzierbare und hocheffiziente Aufbereitung komplexer Omics-Datensätze. Die gezeigte Pipeline demonstriert, wie Rohdaten Schritt für Schritt in saubere (*tidy*) Daten überführt, aggregiert und mit statistischen Testverfahren evaluiert werden können.

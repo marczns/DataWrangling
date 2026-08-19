@@ -5,14 +5,17 @@ Aufteilung: " Malte: Machine Learning und Clustering; Marc: Data Wrangling, QA/Q
 format: html
 editor: visual
 ---
-# Hypothesen
-Für eine vollständig Wissenschaftliche Betrachtung des Berichts wurden folgende Hypothesen formuliert und im folgenden Bericht beantowrtet. 
 
-Hypothese 1: "Die Top-500 variabelsten Gene erlauben eine klare Trennung der B-Zell- und T-Zell-Proben mittels Hauptkomponentenanalyse." 
-Hypothese 2: ": Ein unüberwachter Algorithmus kann die Patienten allein anhand der 
-Expressionsmuster der 500 variabelsten Gene in biologisch sinnvolle Gruppen 
-unterteilen, die mit den Krankheitsbildern übereinstimmen."
+# Hypothesen
+
+Für eine vollständig Wissenschaftliche Betrachtung des Berichts wurden folgende Hypothesen formuliert und im folgenden Bericht beantowrtet.
+
+Hypothese 1: "Die Top-500 variabelsten Gene erlauben eine klare Trennung der B-Zell- und T-Zell-Proben mittels Hauptkomponentenanalyse."
+
+Hypothese 2: ": Ein unüberwachter Algorithmus kann die Patienten allein anhand der Expressionsmuster der 500 variabelsten Gene in biologisch sinnvolle Gruppen unterteilen, die mit den Krankheitsbildern übereinstimmen."
+
 Hypothese 3:"Ein Random Forest Modell kann allein basierend auf den ersten fünf Hauptkomponenten den B/T-Zell-Phänotyp mit einer hohen Genauigkeit vorhersagen."
+
 Hypothese 4:"Bestimmte Hauptkomponenten (z.B. PC1) tragen maßgeblich zur Vorhersagekraft des Random Forest Modells bei."
 
 # Data Wrangling
@@ -227,10 +230,8 @@ legend("topright",
 ```
 
 ### Beantwortung der Hypothese 1
-Es wird die Hypothese 1 "Die Top-500 variabelsten Gene erlauben eine klare Trennung der B-Zell- und T-Zell-Proben mittels Hauptkomponentenanalyse." überprüft und bestätigt oder widerlegt. 
-Die erste Hauptkomponente zeigt eine deutliche Trennung der Zelltypen. Fast alle Proben mit B-Zell-Phänotyp befinden sich im linken Bereich des Diagramms bei negativen PC1-Werten. Während die T - Zell Gruppen klar eher auf der rechten Seite des Plots zu erkennen sind. 
-Die Hauptkomponentenanalyse auf Basis der 500 variabelsten Gene bildet die biologische Realität gut erkennbar ab. Die unterschiedlichen Genexpressionsmuster der ersten Hauptkomponente der B- und T-Zellen ist ausreichend, um die Patientenproben visuell fehlerfrei in den zwei Hauptgruppen zu trennen.
-Hypothese 1 lässt sich somit bestätigen. 
+
+Es wird die Hypothese 1 "Die Top-500 variabelsten Gene erlauben eine klare Trennung der B-Zell- und T-Zell-Proben mittels Hauptkomponentenanalyse." überprüft und bestätigt oder widerlegt. Die erste Hauptkomponente zeigt eine deutliche Trennung der Zelltypen. Fast alle Proben mit B-Zell-Phänotyp befinden sich im linken Bereich des Diagramms bei negativen PC1-Werten. Während die T - Zell Gruppen klar eher auf der rechten Seite des Plots zu erkennen sind. Die Hauptkomponentenanalyse auf Basis der 500 variabelsten Gene bildet die biologische Realität gut erkennbar ab. Die unterschiedlichen Genexpressionsmuster der ersten Hauptkomponente der B- und T-Zellen ist ausreichend, um die Patientenproben visuell fehlerfrei in den zwei Hauptgruppen zu trennen. Hypothese 1 lässt sich somit bestätigen.
 
 ## Typkonvertierung
 
@@ -301,7 +302,7 @@ library(randomForest)
 
 ## Anpassung der Zielvariable
 
-Bevor das Modell trainiert wird, muss die Zielvariable angepasst werden. Die Spalte für den Phänotyp BT enthält im Originaldatensatz sehr detaillierte Differenzierungsstadien wie beispielsweise B1, B2, T1 und T2. Würde man das Modell auf all diese kleinen Untergruppen trainieren, gäbe es für jede einzelne Gruppe zu wenige Patienten. Das Modell hätte nicht genug Datenpunkte, um verlässliche Muster zu lernen. Es würde die Trainingsdaten nur auswendig lernen und bei neuen Patienten Fehler machen. Um dieses Problem zu lösen, wird die Fragestellung auf die groben Hauptgruppen B und T reduziert. Mit dem Befehl substr wird systematisch nur der allererste Buchstabe der Einträge extrahiert. Anschließend muss über den Befehl as.factor sichergestellt werden, dass R diese Variable als feste Gruppen versteht. Nur so weiß das Programm, dass es sich um eine Einteilung in Kategorien handelt. Die bereinigte Variable wird dann wieder unter all_ml_final\$BT gespeichert. Am Ende folgt ein Checkpoint, der überprüft, ob die Zielvariable nun exakt zwei reine Level besitzt.
+Bevor das Modell trainiert wird, muss die Zielvariable angepasst werden. Die Spalte für den Phänotyp BT enthält im Originaldatensatz sehr detaillierte Differenzierungsstadien wie beispielsweise B1, B2, T1 und T2. Würde man das Modell auf all diese kleinen Untergruppen trainieren, gäbe es für jede einzelne Gruppe zu wenige Patienten. Das Modell hätte nicht genug Datenpunkte, um verlässliche Muster zu lernen. Es würde die Trainingsdaten nur auswendig lernen und bei neuen Patienten Fehler machen. Um dieses Problem zu lösen, wird die Fragestellung auf die groben Hauptgruppen B und T reduziert. Mit dem Befehl substr wird systematisch nur der allererste Buchstabe der Einträge extrahiert. Anschließend muss über den Befehl "as.factor" sichergestellt werden, dass R diese Variable als feste Gruppen versteht. Nur so weiß das Programm, dass es sich um eine Einteilung in Kategorien handelt. Die bereinigte Variable wird dann wieder unter "all_ml_final\$BT" gespeichert. Am Ende folgt ein Checkpoint, der überprüft, ob die Zielvariable nun exakt zwei reine Level besitzt.
 
 ```{r}
 # Zielvariable auf B und T reduzieren
@@ -313,7 +314,7 @@ cat("Zielvariable erfolgreich angepasst! BT enthält nun die Level:", paste(leve
 
 ## Aufteilung in Trainings- und Testdaten
 
-Eine Grundregel im Machine Learning lautet, dass ein Modell nicht mit den Daten bewertet werden darf, die es bereits beim Training gesehen hat. Um zu testen, wie gut das Modell wirklich ist, muss der Datensatz geteilt werden. Zuerst wird über den Befehl set.seed der Zufallsgenerator des Computers eingefroren. Dies stellt sicher, dass bei jedem erneuten Ausführen des Skripts exakt dieselben Patienten in die Trainings- und Testgruppe sortiert werden und die Ergebnisse nicht zufällig schwanken. Über den Befehl createDataPartition wird ein Index erstellt, der exakt 70 Prozent der Daten für das Training reserviert. Dieser spezielle Befehl wird genutzt, da er auf die Verhältnisse in den Daten achtet. Das bedeutet, er stellt sicher, dass das ursprüngliche Mengenverhältnis von B-Zellen zu T-Zellen sowohl im Trainingsset als auch im Testset erhalten bleibt. Das Ergebnis wird als train_index gespeichert. Danach werden die Daten aufgeteilt und als train_daten sowie test_daten gespeichert. Der abschließende Checkpoint verifiziert die korrekte Aufteilung der Probenmengen.
+Eine Grundregel im Machine Learning lautet, dass ein Modell nicht mit den Daten bewertet werden darf, die es bereits beim Training gesehen hat. Um zu testen, wie gut das Modell wirklich ist, muss der Datensatz geteilt werden. Zuerst wird über den Befehl "set.seed" der Zufallsgenerator des Computers eingefroren. Dies stellt sicher, dass bei jedem erneuten Ausführen des Skripts exakt dieselben Patienten in die Trainings- und Testgruppe sortiert werden und die Ergebnisse nicht zufällig schwanken. Über den Befehl createDataPartition wird ein Index erstellt, der exakt 70 Prozent der Daten für das Training reserviert. Dieser spezielle Befehl wird genutzt, da er auf die Verhältnisse in den Daten achtet. Das bedeutet, er stellt sicher, dass das ursprüngliche Mengenverhältnis von B-Zellen zu T-Zellen sowohl im Trainingsset als auch im Testset erhalten bleibt. Das Ergebnis wird als "train_index" gespeichert. Danach werden die Daten aufgeteilt und als "train_daten" sowie "test_daten" gespeichert. Der abschließende Checkpoint verifiziert die korrekte Aufteilung der Probenmengen.
 
 ```{r}
 # Zufallsgenerator fixieren für absolute Reproduzierbarkeit
@@ -332,7 +333,7 @@ cat("Daten-Split erfolgreich! Trainingsdaten:", nrow(train_daten), "Proben | Tes
 
 ## Modelltraining
 
-Für das Training wurde der Random Forest Algorithmus verwendet. Der Algorithmus erstellt nicht nur einen einzelnen Entscheidungsbaum, sondern eine Vielzahl davon, die am Ende gemeinsam über die Zuordnung einer Probe abstimmen. Diese Methode ist sehr unempfindlich gegenüber Ausreißern in biologischen Daten. Der Befehl randomForest definiert, dass der Zelltyp BT vorhergesagt werden soll. Als Informationsgrundlage werden dem Modell jedoch nicht die 500 einzelnen Gene, sondern ausschließlich die fünf zuvor berechneten Hauptkomponenten PC1 bis PC5 gegeben. Dies wird gemacht, um das Modell nicht mit zu vielen Variablen auf einmal zu überfordern. Da die fünf Hauptkomponenten bereits den Großteil der biologischen Informationen zusammenfassen, wird dem Modell so die Mustererkennung erleichtert. Über den Parameter ntree wird festgelegt, dass der Wald aus 500 unabhängigen Entscheidungsbäumen bestehen soll. Über importance wird der Algorithmus angewiesen, im Hintergrund genau zu protokollieren, welche Hauptkomponenten am wichtigsten für die Vorhersage waren. Das fertige Modell wird unter rf_modell gespeichert.
+Für das Training wurde der Random Forest Algorithmus verwendet. Der Algorithmus erstellt nicht nur einen einzelnen Entscheidungsbaum, sondern eine Vielzahl davon, die am Ende gemeinsam über die Zuordnung einer Probe abstimmen. Diese Methode ist sehr unempfindlich gegenüber Ausreißern in biologischen Daten. Der Befehl randomForest definiert, dass der Zelltyp BT vorhergesagt werden soll. Als Informationsgrundlage werden dem Modell jedoch nicht die 500 einzelnen Gene, sondern ausschließlich die fünf zuvor berechneten Hauptkomponenten PC1 bis PC5 gegeben. Dies wird gemacht, um das Modell nicht mit zu vielen Variablen auf einmal zu überfordern. Da die fünf Hauptkomponenten bereits den Großteil der biologischen Informationen zusammenfassen, wird dem Modell so die Mustererkennung erleichtert. Über den Parameter ntree wird festgelegt, dass der Wald aus 500 unabhängigen Entscheidungsbäumen bestehen soll. Über importance wird der Algorithmus angewiesen, im Hintergrund genau zu protokollieren, welche Hauptkomponenten am wichtigsten für die Vorhersage waren. Das fertige Modell wird unter "rf_modell" gespeichert.
 
 ```{r}
 # Random Forest Modell trainieren
@@ -347,7 +348,7 @@ cat("Modelltraining erfolgreich! Das Random Forest Modell wurde aus 500 Entschei
 
 ## Modellvorhersage und Evaluation
 
-Nach dem Training muss die Qualität des Modells objektiv bewertet werden. Hierfür wird das Modell mit den restlichen 30 Prozent der Daten getestet, die während des Trainings zurückgehalten wurden. Über den Befehl predict wird das Modell angewiesen, für jeden dieser unbekannten Patienten vorherzusagen, ob eine B- oder T-Zell-Leukämie vorliegt. Die Ergebnisse werden unter vorhersage gespeichert. Anschließend wird über den Befehl confusionMatrix die Vorhersage des Modells mit den tatsächlichen Diagnosen der Testdaten abgeglichen. Dies erzeugt eine Wahrheitsmatrix. Diese Matrix ist wichtig, da sie nicht nur die einfache Gesamtgenauigkeit ausgibt, sondern genau aufschlüsselt, welche Fehler passiert sind. In der Auswertung lässt sich so genau ablesen, wie viele der echten B-Zellen korrekt erkannt wurden und ob es Verwechslungen mit den T-Zellen gab. Die Ergebnisse der Matrix werden in der Konsole ausgegeben.
+Nach dem Training muss die Qualität des Modells objektiv bewertet werden. Hierfür wird das Modell mit den restlichen 30 Prozent der Daten getestet, die während des Trainings zurückgehalten wurden. Über den Befehl predict wird das Modell angewiesen, für jeden dieser unbekannten Patienten vorherzusagen, ob eine B- oder T-Zell-Leukämie vorliegt. Die Ergebnisse werden unter "vorhersage" gespeichert. Anschließend wird über den Befehl "confusionMatrix" die Vorhersage des Modells mit den tatsächlichen Diagnosen der Testdaten abgeglichen. Dies erzeugt eine Wahrheitsmatrix. Diese Matrix ist wichtig, da sie nicht nur die einfache Gesamtgenauigkeit ausgibt, sondern genau aufschlüsselt, welche Fehler passiert sind. In der Auswertung lässt sich so genau ablesen, wie viele der echten B-Zellen korrekt erkannt wurden und ob es Verwechslungen mit den T-Zellen gab. Die Ergebnisse der Matrix werden in der Konsole ausgegeben.
 
 ```{r}
 # Vorhersagen auf den Testdaten generieren
@@ -366,7 +367,7 @@ cat("\nModellevaluation abgeschlossen! Die Gesamtgenauigkeit auf den unbekannten
 
 ## Feature Importance
 
-Ein oft kritisierter Aspekt beim Machine Learning ist, dass man oft nicht nachvollziehen kann, warum ein Modell eine bestimmte Entscheidung getroffen hat. Der Random Forest bietet hier jedoch eine Lösung. Mithilfe des Befehls varImpPlot wird eine Grafik erzeugt, die transparent zeigt, welche Eingangsvariablen den stärksten Einfluss auf die Entscheidung des Modells hatten. Die Grafik ordnet die fünf Hauptkomponenten nach ihrer Wichtigkeit. Ein hoher Wert bedeutet, dass die Vorhersage deutlich ungenauer werden würde, wenn man dem Algorithmus diese Hauptkomponente wegnimmt. Dies hilft dabei, die mathematischen Ergebnisse besser biologisch zu deuten, daran kann erkannt werden, welche Werte die beiden Leukämie-Typen am besten voneinander trennen.
+Ein oft kritisierter Aspekt beim Machine Learning ist, dass man oft nicht nachvollziehen kann, warum ein Modell eine bestimmte Entscheidung getroffen hat. Der Random Forest bietet hier jedoch eine Lösung. Mithilfe des Befehls "varImpPlot" wird eine Grafik erzeugt, die transparent zeigt, welche Eingangsvariablen den stärksten Einfluss auf die Entscheidung des Modells hatten. Die Grafik ordnet die fünf Hauptkomponenten nach ihrer Wichtigkeit. Ein hoher Wert bedeutet, dass die Vorhersage deutlich ungenauer werden würde, wenn man dem Algorithmus diese Hauptkomponente wegnimmt. Dies hilft dabei, die mathematischen Ergebnisse besser biologisch zu deuten, daran kann erkannt werden, welche Werte die beiden Leukämie-Typen am besten voneinander trennen.
 
 ```{r}
 # Visualisierung der Wichtigkeit der einzelnen Hauptkomponenten
@@ -376,21 +377,33 @@ varImpPlot(rf_modell,
            col = "black")
 ```
 
-## Clustering
+## Beantwortung von Hypothese 3
+
+Es wird Hypothese 3: "Ein Random Forest Modell kann allein basierend auf den ersten fünf Hauptkomponenten den B/T-Zell-Phänotyp mit einer hohen Genauigkeit vorhersagen." überprüft, ob diese zutrifft oder widerlegt wird.
+
+Die Ergebnisse aus dem Abschnitt zur Modellevaluation zeigen, dass der Algorithmus auf den unbekannten Testdaten funktioniert hat. Die berechnete Wahrheitsmatrix beweist, dass das Modell alle 28 B-Zellen und alle 9 T-Zellen richtig zugeordnet hat. Die Gesamtgenauigkeit des Modells beträgt somit 100 %. Das zeigt, dass die fünf Hauptkomponenten in diesem Fall ausreichen, um die Leukämie-Art präzise zu bestimmen. Hypothese 3 lässt sich somit bestätigen.
+
+## Beantwortung von Hypothese 4
+
+Es wird Hypothese 4: "Bestimmte Hauptkomponenten (z.B. PC1) tragen maßgeblich zur Vorhersagekraft des Random Forest Modells bei." dahingehend überprüft, ob diese zutrifft oder widerlegt wird.
+
+Die Grafik zeigt, wie wichtig die einzelnen Hauptkomponenten für die Entscheidung des Modells sind. In beiden Grafiken hat die erste Hauptkomponente (PC1) mit riesigem Abstand den höchsten Wert. Das bedeutet, dass die Genauigkeit des Modells extrem abstürzen würde, wenn man PC1 weglässt. Das bedeutet, dass PC1 den wichtigsten Beitrag leistet, um die beiden Leukämie-Typen voneinander zu trennen. Die übrigen Komponenten spielen für die Vorhersage des Modells eine untergerordnete Rolle. Hypothese 4 lässt sich somit eindeutig bestätigen
+
+# Clustering
 
 Clustering ist ein Verfahren des unüberwachten Lernens. Das bedeutet, dass der Algorithmus die Datenpunkte nur anhand ihrer Ähnlichkeiten in Gruppen einteilt, ohne dass vorher verraten wird, um welche Patienten es sich handelt. Ziel dieses Abschnitts ist es herauszufinden, ob sich die Leukämie-Proben allein anhand ihrer Genexpressionsmuster in biologisch sinnvolle Gruppen unterteilen lassen. Es soll geprüft werden, ob die B-Zellen und T-Zellen ganz natürlich eigene Gruppen bilden. Im folgenden Abschnitt wird dafür ein hierarchisches Clustering in Kombination mit einer farblichen Darstellung, einer sogenannten Heatmap, angewendet.
 
-# Pakete laden
+## Pakete laden
 
-Für die visuelle Gruppierung der Daten wird ein spezielles Paket benötigt. Das Paket pheatmap stellt grundlegende Funktionen für das Zeichnen von Heatmaps und die Durchführung des hierarchischen Clusterings zur Verfügung. Durch das Laden des Pakets wird die visuelle Verarbeitung vorbereitet, da die Standardfunktionen von R für solche komplexen Grafiken nicht ausreichen.
+Für die visuelle Gruppierung der Daten wird ein spezielles Paket benötigt. Das Paket "pheatmap" stellt grundlegende Funktionen für das Zeichnen von Heatmaps und die Durchführung des hierarchischen Clusterings zur Verfügung. Durch das Laden des Pakets wird die visuelle Verarbeitung vorbereitet, da die Standardfunktionen von R für solche komplexen Grafiken nicht ausreichen.
 
 ```{r}
 library(pheatmap)
 ```
 
-# Datenvorbereitung für die Heatmap
+## Datenvorbereitung für die Heatmap
 
-Bevor die Grafik erstellt werden kann, müssen die Daten so formatiert werden, dass sie von der Funktion verarbeitet werden können. Der Befehl as.matrix erlaubt es, unseren bisherigen Datensatz in eine rein numerische Matrix umzuwandeln. Da die Funktion pheatmap ausschließlich Zahlenwerte akzeptiert, werden gezielt nur die Spalten mit den skalierten Expressionswerten der ausgewählten 500 Gene markiert. Die Spalte mit dem Zelltyp sowie die Hauptkomponenten werden für dieses Clustering komplett ausgeschlossen, da sie das rein biologische Muster verfälschen würden. Die umgewandelte Matrix wird dann unter dem Namen heatmap_daten gespeichert. Danach werden die Informationen für die farbliche Markierung am Rand der Grafik definiert. Diese Randmarkierung hilft später bei der Auswertung. Über den Befehl data.frame wird eine neue Tabelle erstellt, die festhält, welche Probe zu welchem Zelltyp gehört. Diese Information wird unter annotation_row gespeichert. Über den Befehl rownames wird am Ende sichergestellt, dass die Zeilennamen beider Datensätze exakt übereinstimmen, damit die Farben später den richtigen Patienten zugeordnet werden.
+Bevor die Grafik erstellt werden kann, müssen die Daten so formatiert werden, dass sie von der Funktion verarbeitet werden können. Der Befehl "as.matrix" erlaubt es, unseren bisherigen Datensatz in eine rein numerische Matrix umzuwandeln. Da die Funktion pheatmap ausschließlich Zahlenwerte akzeptiert, werden gezielt nur die Spalten mit den skalierten Expressionswerten der ausgewählten 500 Gene markiert. Die Spalte mit dem Zelltyp sowie die Hauptkomponenten werden für dieses Clustering komplett ausgeschlossen, da sie das rein biologische Muster verfälschen würden. Die umgewandelte Matrix wird dann unter dem Namen "heatmap_daten" gespeichert. Danach werden die Informationen für die farbliche Markierung am Rand der Grafik definiert. Diese Randmarkierung hilft später bei der Auswertung. Über den Befehl data.frame wird eine neue Tabelle erstellt, die festhält, welche Probe zu welchem Zelltyp gehört. Diese Information wird unter "annotation_row" gespeichert. Über den Befehl "rownames" wird am Ende sichergestellt, dass die Zeilennamen beider Datensätze exakt übereinstimmen, damit die Farben später den richtigen Patienten zugeordnet werden.
 
 ```{r}
 # Umwandeln der Expressionsdaten in eine numerische Matrix
@@ -403,7 +416,7 @@ rownames(annotation_row) <- rownames(all_ml_final)
 
 ## Generierung der Heatmap
 
-Nun wird das eigentliche Clustering berechnet und direkt visuell dargestellt. Über den Befehl pheatmap wird die Grafik erzeugt. Dabei wird der mathematische Abstand verwendet, um die exakte Ähnlichkeit zwischen den einzelnen Proben zu berechnen. Als Verknüpfungsmethode wird die Ward-Methode gewählt, da diese dafür bekannt ist, sehr kompakte und optisch gut getrennte Gruppen zu bilden. Um die Grafik übersichtlich zu halten, werden die Namen der einzelnen Proben und Gene ausgeblendet, da hunderte Gene und Patienten den Text unleserlich machen würden. Die farbliche Markierung im Bild zeigt die Aktivität der Gene an. Blau steht dabei für eine niedrige Expression und Rot für eine hohe Expression. Die zusätzliche Leiste am oberen Rand zeigt an, ob der Patient eine B-Zell-Leukämie oder T-Zell-Leukämie hat. So lässt sich auf einen Blick erkennen, ob die vom Algorithmus gebildeten Gruppen mit den tatsächlichen Krankheitsbildern übereinstimmen. Am Ende gibt es wieder einen Checkpoint, der bestätigen soll, ob die Erstellung der Heatmap erfolgreich war.
+Nun wird das eigentliche Clustering berechnet und direkt visuell dargestellt. Über den Befehl "pheatmap" wird die Grafik erzeugt. Dabei wird der mathematische Abstand verwendet, um die exakte Ähnlichkeit zwischen den einzelnen Proben zu berechnen. Als Verknüpfungsmethode wird die Ward-Methode gewählt, da diese dafür bekannt ist, sehr kompakte und optisch gut getrennte Gruppen zu bilden. Um die Grafik übersichtlich zu halten, werden die Namen der einzelnen Proben und Gene ausgeblendet, da hunderte Gene und Patienten den Text unleserlich machen würden. Die farbliche Markierung im Bild zeigt die Aktivität der Gene an. Blau steht dabei für eine niedrige Expression und Rot für eine hohe Expression. Die zusätzliche Leiste am oberen Rand zeigt an, ob der Patient eine B-Zell-Leukämie oder T-Zell-Leukämie hat. So lässt sich auf einen Blick erkennen, ob die vom Algorithmus gebildeten Gruppen mit den tatsächlichen Krankheitsbildern übereinstimmen. Am Ende gibt es wieder einen Checkpoint, der bestätigen soll, ob die Erstellung der Heatmap erfolgreich war.
 
 ```{r}
 # Heatmap erstellen
@@ -421,6 +434,18 @@ pheatmap(heatmap_daten,
 cat("Clustering erfolgreich! Die Heatmap wurde generiert.\n")
 ```
 
-# Diskussion und Schlussfolgerung
+## Beantwortung von Hypothese 2
 
-Der ursprüngliche Datensatz, der 12.625 Gene von 128 Patienten umfasste, konnte erfolgreich auf die 500 aussagekräftigsten Gene reduziert werden. Durch die anschließende Hauptkomponentenanalyse wurden die Daten weiter auf fünf wesentliche Hauptkomponenten verdichtet, ohne dass essenzielle Informationen verloren gingen. 
+Es wird Hypothese 2:"Ein unüberwachter Algorithmus kann die Patienten allein anhand der Expressionsmuster der 500 variabelsten Gene in biologisch sinnvolle Gruppen unterteilen, die mit den Krankheitsbildern übereinstimmen." Überprüft ob dieser zutrifft oder widerlegt wird.
+
+Das Bild zeigt links einen Strukturbaum , der sich ganz oben in genau zwei große Äste aufteilt. Die Farben am linken Rand beweisen, dass diese Aufteilung fehlerfrei ist. Der obere Ast enthält nur T-Zell-Proben (orange) und der untere Ast enthält nur B-Zell-Proben (blau). In der Heatmap sieht man klare Unterschiede. Es gibt sowohl große rote und blaue Abschnitte, die bei den beiden Patientengruppen verschieden aussehen. Die Muster der Gene reichen aus, um die Patienten ohne Fehlerfrei in die zwei Gruppen aufzuteilen. Hypothese 2 lässt sich somit bestätigen.
+
+## Diskussion und Schlussfolgerung
+
+Der ursprüngliche Datensatz, der 12.625 Gene von 128 Patienten umfasste, konnte erfolgreich auf die 500 aussagekräftigsten Gene reduziert werden. Durch die anschließende Hauptkomponentenanalyse wurden die Daten weiter auf fünf wesentliche Hauptkomponenten verdichtet, ohne dass essenzielle Informationen verloren gingen.
+
+Die Auswertung der Heatmap ergab, dass der unüberwachte Algorithmus die Patienten anhand der Genaktivität in die tatsächlichen Leukämie-Gruppen sortieren konnte. Dies zeigt, dass die biologischen Expressionsmuster zwischen B- und T-Zellen sich eindeutig voneinander unterscheiden lassen.
+
+Das Random-Forest-Modell zeigte eine Gesamtgenauigkeit von 100 %. Es konnten alle 28 B-Zell-Proben sowie alle 9 T-Zell-Proben fehlerfrei und ohne  Verwechslung richtig zuordnet werden.
+
+Data Wrangling, QA/QC, Machine Learning, Clustering und die Dimensionsreduktion konnten erfolgreich am ALL Datensatz durchgeführt werden. Die vier selbst aufgestellten Hypothesen konnten erfolgreich bestätigt werden. Durch Machine Learning und Clustering konnten die B- und T-Zellen vonander unterschieden und getrennt werden. Aufgrund eines Erfolgreichen Feature Engeneerings konnte eine hohe Vorhersagegenauigkeit der Modelle vorausgesagt werden. Somit bieten diese Methoden der Data Science wihtige Hilfsmittel, um in der Medizinischen oder Biotechnologischen Forschung verlässliche Datengetriebene Mustererkennungen durchzuführen.

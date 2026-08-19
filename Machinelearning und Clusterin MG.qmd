@@ -1,0 +1,134 @@
+# Machine Learning
+
+Machine Learning ist ein Prozess, bei dem Algorithmen eigenständig Muster aus Daten lernen, um Vorhersagen auf neuen Daten zu treffen. Ziel dieses Abschnitts ist es, ein Vorhersagemodell zu trainieren, das allein anhand der berechneten Hauptkomponenten vorhersagt, ob ein Patient an einer B-Zell-Leukämie oder einer T-Zell-Leukämie leidet. Da die tatsächliche Krankheit in unseren Metadaten bereits bekannt ist, können wir ein Verfahren des überwachten Lernens anwenden. Der Algorithmus bekommt im Training sowohl die Daten als auch die korrekten Lösungen präsentiert und lernt so die zugrunde liegenden Regeln. Für diese Aufgabe wird im folgenden Abschnitt der Random Forest Algorithmus verwendet.
+
+## Pakete laden
+
+Für die Durchführung des Machine Learnings greifen wird auf zwei spezifische R-Pakete zurückgegriffen. Das Paket caret ist ein Standardwerkzeug in der Datenanalyse. Es stellt Funktionen für die Vorbereitung der Daten, die korrekte Aufteilung und die genaue statistische Auswertung zur Verfügung. Das Paket randomForest liefert hingegen den eigentlichen Algorithmus für das Training des Modells. Durch das Laden beider Pakete wird die Modellierung vorbereitet.
+
+```{r}
+library(caret)
+library(randomForest)
+```
+
+## Anpassung der Zielvariable
+
+Bevor das Modell trainiert wird, muss die Zielvariable angepasst werden. Die Spalte für den Phänotyp BT enthält im Originaldatensatz sehr detaillierte Differenzierungsstadien wie beispielsweise B1, B2, T1 und T2. Würde man das Modell auf all diese kleinen Untergruppen trainieren, gäbe es für jede einzelne Gruppe zu wenige Patienten. Das Modell hätte nicht genug Datenpunkte, um verlässliche Muster zu lernen. Es würde die Trainingsdaten nur auswendig lernen und bei neuen Patienten Fehler machen. Um dieses Problem zu lösen, wird die Fragestellung auf die groben Hauptgruppen B und T reduziert. Mit dem Befehl substr wird systematisch nur der allererste Buchstabe der Einträge extrahiert. Anschließend muss über den Befehl as.factor sichergestellt werden, dass R diese Variable als feste Gruppen versteht. Nur so weiß das Programm, dass es sich um eine Einteilung in Kategorien handelt. Die bereinigte Variable wird dann wieder unter all_ml_final\$BT gespeichert. Am Ende folgt ein Checkpoint, der überprüft, ob die Zielvariable nun exakt zwei reine Level besitzt.
+
+```{r}
+# Zielvariable auf B und T reduzieren
+all_ml_final$BT <- as.factor(substr(as.character(all_ml_final$BT), 1, 1))
+
+# Bestätigung
+cat("Zielvariable erfolgreich angepasst! BT enthält nun die Level:", paste(levels(all_ml_final$BT), collapse = " und "), "\n")
+```
+
+## Aufteilung in Trainings- und Testdaten
+
+Eine Grundregel im Machine Learning lautet, dass ein Modell nicht mit den Daten bewertet werden darf, die es bereits beim Training gesehen hat. Um zu testen, wie gut das Modell wirklich ist, muss der Datensatz geteilt werden. Zuerst wird über den Befehl set.seed der Zufallsgenerator des Computers eingefroren. Dies stellt sicher, dass bei jedem erneuten Ausführen des Skripts exakt dieselben Patienten in die Trainings- und Testgruppe sortiert werden und die Ergebnisse nicht zufällig schwanken. Über den Befehl createDataPartition wird ein Index erstellt, der exakt 70 Prozent der Daten für das Training reserviert. Dieser spezielle Befehl wird genutzt, da er auf die Verhältnisse in den Daten achtet. Das bedeutet, er stellt sicher, dass das ursprüngliche Mengenverhältnis von B-Zellen zu T-Zellen sowohl im Trainingsset als auch im Testset erhalten bleibt. Das Ergebnis wird als train_index gespeichert. Danach werden die Daten aufgeteilt und als train_daten sowie test_daten gespeichert. Der abschließende Checkpoint verifiziert die korrekte Aufteilung der Probenmengen.
+
+```{r}
+# Zufallsgenerator fixieren für absolute Reproduzierbarkeit
+set.seed(42)
+
+# Index für den Split erstellen (Verhältnis von B und T bleibt gleich)
+train_index <- createDataPartition(all_ml_final$BT, p = 0.7, list = FALSE)
+
+# Datensatz aufteilen
+train_daten <- all_ml_final[train_index, ]
+test_daten <- all_ml_final[-train_index, ]
+
+# Bestätigung
+cat("Daten-Split erfolgreich! Trainingsdaten:", nrow(train_daten), "Proben | Testdaten:", nrow(test_daten), "Proben.\n")
+```
+
+## Modelltraining
+
+Für das Training wurde der Random Forest Algorithmus verwendet. Der Algorithmus erstellt nicht nur einen einzelnen Entscheidungsbaum, sondern eine Vielzahl davon, die am Ende gemeinsam über die Zuordnung einer Probe abstimmen. Diese Methode ist sehr unempfindlich gegenüber Ausreißern in biologischen Daten. Der Befehl randomForest definiert, dass der Zelltyp BT vorhergesagt werden soll. Als Informationsgrundlage werden dem Modell jedoch nicht die 500 einzelnen Gene, sondern ausschließlich die fünf zuvor berechneten Hauptkomponenten PC1 bis PC5 gegeben. Dies wird gemacht, um das Modell nicht mit zu vielen Variablen auf einmal zu überfordern. Da die fünf Hauptkomponenten bereits den Großteil der biologischen Informationen zusammenfassen, wird dem Modell so die Mustererkennung erleichtert. Über den Parameter ntree wird festgelegt, dass der Wald aus 500 unabhängigen Entscheidungsbäumen bestehen soll. Über importance wird der Algorithmus angewiesen, im Hintergrund genau zu protokollieren, welche Hauptkomponenten am wichtigsten für die Vorhersage waren. Das fertige Modell wird unter rf_modell gespeichert.
+
+```{r}
+# Random Forest Modell trainieren
+rf_modell <- randomForest(BT ~ PC1 + PC2 + PC3 + PC4 + PC5, 
+                          data = train_daten, 
+                          ntree = 500, 
+                          importance = TRUE)
+
+# Bestätigung
+cat("Modelltraining erfolgreich! Das Random Forest Modell wurde aus 500 Entscheidungsbäumen erstellt.\n")
+```
+
+## Modellvorhersage und Evaluation
+
+Nach dem Training muss die Qualität des Modells objektiv bewertet werden. Hierfür wird das Modell mit den restlichen 30 Prozent der Daten getestet, die während des Trainings zurückgehalten wurden. Über den Befehl predict wird das Modell angewiesen, für jeden dieser unbekannten Patienten vorherzusagen, ob eine B- oder T-Zell-Leukämie vorliegt. Die Ergebnisse werden unter vorhersage gespeichert. Anschließend wird über den Befehl confusionMatrix die Vorhersage des Modells mit den tatsächlichen Diagnosen der Testdaten abgeglichen. Dies erzeugt eine Wahrheitsmatrix. Diese Matrix ist wichtig, da sie nicht nur die einfache Gesamtgenauigkeit ausgibt, sondern genau aufschlüsselt, welche Fehler passiert sind. In der Auswertung lässt sich so genau ablesen, wie viele der echten B-Zellen korrekt erkannt wurden und ob es Verwechslungen mit den T-Zellen gab. Die Ergebnisse der Matrix werden in der Konsole ausgegeben.
+
+```{r}
+# Vorhersagen auf den Testdaten generieren
+vorhersage <- predict(rf_modell, newdata = test_daten)
+
+# Wahrheitsmatrix zur Auswertung berechnen
+conf_matrix <- confusionMatrix(vorhersage, test_daten$BT)
+
+# Ergebnisse ausgeben
+print(conf_matrix)
+
+# Checkpoint für die Genauigkeit
+accuracy <- round(conf_matrix$overall['Accuracy'] * 100, 2)
+cat("\nModellevaluation abgeschlossen! Die Gesamtgenauigkeit auf den unbekannten Testdaten beträgt:", accuracy, "%\n")
+```
+
+## Feature Importance
+
+Ein oft kritisierter Aspekt beim Machine Learning ist, dass man oft nicht nachvollziehen kann, warum ein Modell eine bestimmte Entscheidung getroffen hat. Der Random Forest bietet hier jedoch eine Lösung. Mithilfe des Befehls varImpPlot wird eine Grafik erzeugt, die transparent zeigt, welche Eingangsvariablen den stärksten Einfluss auf die Entscheidung des Modells hatten. Die Grafik ordnet die fünf Hauptkomponenten nach ihrer Wichtigkeit. Ein hoher Wert bedeutet, dass die Vorhersage deutlich ungenauer werden würde, wenn man dem Algorithmus diese Hauptkomponente wegnimmt. Dies hilft dabei, die mathematischen Ergebnisse besser biologisch zu deuten, daran kann erkannt werden, welche Werte die beiden Leukämie-Typen am besten voneinander trennen.
+
+```{r}
+# Visualisierung der Wichtigkeit der einzelnen Hauptkomponenten
+varImpPlot(rf_modell, 
+           main = "Einfluss der Hauptkomponenten",
+           pch = 19,
+           col = "black")
+```
+
+## Clustering
+
+Clustering ist ein Verfahren des unüberwachten Lernens. Das bedeutet, dass der Algorithmus die Datenpunkte nur anhand ihrer Ähnlichkeiten in Gruppen einteilt, ohne dass vorher verraten wird, um welche Patienten es sich handelt. Ziel dieses Abschnitts ist es herauszufinden, ob sich die Leukämie-Proben allein anhand ihrer Genexpressionsmuster in biologisch sinnvolle Gruppen unterteilen lassen. Es soll geprüft werden, ob die B-Zellen und T-Zellen ganz natürlich eigene Gruppen bilden. Im folgenden Abschnitt wird dafür ein hierarchisches Clustering in Kombination mit einer farblichen Darstellung, einer sogenannten Heatmap, angewendet.
+
+# Pakete laden
+
+Für die visuelle Gruppierung der Daten wird ein spezielles Paket benötigt. Das Paket pheatmap stellt grundlegende Funktionen für das Zeichnen von Heatmaps und die Durchführung des hierarchischen Clusterings zur Verfügung. Durch das Laden des Pakets wird die visuelle Verarbeitung vorbereitet, da die Standardfunktionen von R für solche komplexen Grafiken nicht ausreichen.
+
+```{r}
+library(pheatmap)
+```
+
+# Datenvorbereitung für die Heatmap
+
+Bevor die Grafik erstellt werden kann, müssen die Daten so formatiert werden, dass sie von der Funktion verarbeitet werden können. Der Befehl as.matrix erlaubt es, unseren bisherigen Datensatz in eine rein numerische Matrix umzuwandeln. Da die Funktion pheatmap ausschließlich Zahlenwerte akzeptiert, werden gezielt nur die Spalten mit den skalierten Expressionswerten der ausgewählten 500 Gene markiert. Die Spalte mit dem Zelltyp sowie die Hauptkomponenten werden für dieses Clustering komplett ausgeschlossen, da sie das rein biologische Muster verfälschen würden. Die umgewandelte Matrix wird dann unter dem Namen heatmap_daten gespeichert. Danach werden die Informationen für die farbliche Markierung am Rand der Grafik definiert. Diese Randmarkierung hilft später bei der Auswertung. Über den Befehl data.frame wird eine neue Tabelle erstellt, die festhält, welche Probe zu welchem Zelltyp gehört. Diese Information wird unter annotation_row gespeichert. Über den Befehl rownames wird am Ende sichergestellt, dass die Zeilennamen beider Datensätze exakt übereinstimmen, damit die Farben später den richtigen Patienten zugeordnet werden.
+
+```{r}
+# Umwandeln der Expressionsdaten in eine numerische Matrix
+heatmap_daten <- as.matrix(all_ml_final[, 2:501])
+
+# Vorbereiten der Metadaten für die seitliche Markierung
+annotation_row <- data.frame(Zelltyp = all_ml_final$BT)
+rownames(annotation_row) <- rownames(all_ml_final)
+```
+
+## Generierung der Heatmap
+
+Nun wird das eigentliche Clustering berechnet und direkt visuell dargestellt. Über den Befehl pheatmap wird die Grafik erzeugt. Dabei wird der mathematische Abstand verwendet, um die exakte Ähnlichkeit zwischen den einzelnen Proben zu berechnen. Als Verknüpfungsmethode wird die Ward-Methode gewählt, da diese dafür bekannt ist, sehr kompakte und optisch gut getrennte Gruppen zu bilden. Um die Grafik übersichtlich zu halten, werden die Namen der einzelnen Proben und Gene ausgeblendet, da hunderte Gene und Patienten den Text unleserlich machen würden. Die farbliche Markierung im Bild zeigt die Aktivität der Gene an. Blau steht dabei für eine niedrige Expression und Rot für eine hohe Expression. Die zusätzliche Leiste am oberen Rand zeigt an, ob der Patient eine B-Zell-Leukämie oder T-Zell-Leukämie hat. So lässt sich auf einen Blick erkennen, ob die vom Algorithmus gebildeten Gruppen mit den tatsächlichen Krankheitsbildern übereinstimmen. Am Ende gibt es wieder einen Checkpoint, der bestätigen soll, ob die Erstellung der Heatmap erfolgreich war.
+
+```{r}
+# Heatmap erstellen
+pheatmap(heatmap_daten, 
+         annotation_row = annotation_row,
+         show_rownames = FALSE,  
+         show_colnames = FALSE,  
+         clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",
+         clustering_method = "ward.D2",
+         main = "Hierarchisches Clustering der Genexpression",
+         color = colorRampPalette(c("navy", "white", "firebrick3"))(50))
+
+# Bestätigung
+cat("Clustering erfolgreich! Die Heatmap wurde generiert.\n")
+```
